@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import collections
-import enum
 import os.path
 from typing import NamedTuple
 
@@ -12,12 +11,11 @@ import support
 
 INPUT_TXT = os.path.join(os.path.dirname(__file__), 'input.txt')
 
-W = enum.IntEnum('W', 'FIVE FOUR FULL THREE TWO ONE HIGH')
-ORDER = 'AKQT98765432J'
+ORDER = 'J23456789TQKA'
 
 
 class Hand(NamedTuple):
-    w: W
+    w: tuple[int, ...]
     order: tuple[int, ...]
     bid: int
     s: str
@@ -34,28 +32,15 @@ class Hand(NamedTuple):
             (c, _), = counts.most_common(1)
             counts[c] += js
 
-        common = counts.most_common(2)
-        if len(common) == 1:
-            tp = W.FIVE
-        elif common[0][1] == 4:
-            tp = W.FOUR
-        elif common[0][1] == 3 and common[1][1] == 2:
-            tp = W.FULL
-        elif common[0][1] == 3:
-            tp = W.THREE
-        elif common[0][1] == 2 and common[1][1] == 2:
-            tp = W.TWO
-        elif common[0][1] == 2:
-            tp = W.ONE
-        else:
-            tp = W.HIGH
+        w = tuple(n for _, n in counts.most_common(2))
+        order = tuple(ORDER.index(c) for c in hand)
 
-        return cls(tp, order, int(n_s), hand)
+        return cls(w, order, int(n_s), hand)
 
 
 def compute(s: str) -> int:
     hands = [Hand.parse(line) for line in s.splitlines()]
-    hands.sort(reverse=True)
+    hands.sort()
     return sum(i * hand.bid for i, hand in enumerate(hands, 1))
 
 
