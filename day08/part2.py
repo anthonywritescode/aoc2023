@@ -33,11 +33,7 @@ def compute(s: str) -> int:
 
         raise NotImplementedError('unreachable')
 
-    ret = 1
-    for k in paths:
-        if k.endswith('A'):
-            ret = math.lcm(ret, period(k))
-    return ret
+    return math.lcm(*(period(k) for k in paths if k.endswith('A')))
 
 
 INPUT_S = '''\
