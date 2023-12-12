@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import functools
 import os.path
 import re
-from typing import Generator
 
 import pytest
 
@@ -11,33 +11,56 @@ import support
 
 INPUT_TXT = os.path.join(os.path.dirname(__file__), 'input.txt')
 
+DOTS = re.compile(r'\.+')
 
-def gen(s: str) -> Generator[str, None, None]:
-    if not s:
-        yield ''
-        return
-    for rest in gen(s[1:]):
-        if s[0] == '?':
-            yield '.' + rest
-            yield '#' + rest
+
+def _can_place(pattern: str, i: int, piece: str) -> bool:
+    for pat_c, piece_c in zip(pattern[i:], piece):
+        if pat_c == '?':
+            continue
+        elif pat_c != piece_c:
+            return False
+    else:
+        return True
+
+
+@functools.lru_cache(maxsize=4096 * 4)
+def _compute(pattern: str, pieces: tuple[str, ...]) -> int:
+    if not pieces:
+        if '#' in pattern:
+            return 0
         else:
-            yield s[0] + rest
+            return 1
+
+    first = pieces[0]
+    rest = tuple(pieces[1:])
+
+    total = 0
+    maximum = len(''.join(pieces))
+    for i in range(0, len(pattern) - maximum + 1):
+        # try and place piece[0] @ i
+        if _can_place(pattern, i, first):
+            total += 1 * _compute(pattern[i + len(first):], rest)
+        if pattern[i] == '#':
+            break
+    return total
 
 
-def counts(s: str) -> list[int]:
-    s = re.sub(r'\.+', '.', s.strip('.'))
-    return [len(s) for s in s.split('.')]
+def _simplify(pattern: str) -> str:
+    return DOTS.sub('.', pattern.strip('.')) + '.'
 
 
 def compute(s: str) -> int:
     lines = s.splitlines()
+
     total = 0
     for line in lines:
         pattern, rest = line.split(' ')
-        got_counts = support.parse_numbers_comma(rest)
-        for cand in gen(pattern):
-            if counts(cand) == got_counts:
-                total += 1
+        counts = support.parse_numbers_comma(rest)
+        pieces = tuple(f'{"#" * count}.' for count in counts)
+        pattern = _simplify(pattern)
+        total += _compute(pattern, pieces)
+
     return total
 
 
@@ -55,6 +78,7 @@ EXPECTED = 21
 @pytest.mark.parametrize(
     ('input_s', 'expected'),
     (
+        ('?#?????##????#??. 1,9', 3),
         (INPUT_S, EXPECTED),
     ),
 )
