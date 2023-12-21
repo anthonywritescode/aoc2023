@@ -232,6 +232,12 @@ class Direction4(enum.Enum):
     def __init__(self, x: int, y: int) -> None:
         self.x, self.y = x, y
 
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, Direction4):
+            return NotImplemented
+        else:
+            return (self.x, self.y) < (other.x, other.y)
+
     @property
     def _vals(self) -> tuple[Direction4, ...]:
         return tuple(type(self).__members__.values())
